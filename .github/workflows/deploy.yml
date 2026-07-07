@@ -1,0 +1,127 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "recon = inspect server only, deploy = build and publish"
+        type: choice
+        options:
+          - recon
+          - deploy
+        default: deploy
+      host:
+        description: "Server IP or hostname"
+        default: "164.68.125.52"
+      password:
+        description: "SSH password (not stored; used only for this run)"
+        required: true
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      SSHPASS: ${{ inputs.password }}
+      HOST: ${{ inputs.host }}
+      SITE: finalfantasy.forsend.com.br
+      WEBROOT: /var/www/finalfantasy.forsend.com.br
+    steps:
+      - name: Install sshpass
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq sshpass
+
+      - name: Recon server
+        if: ${{ inputs.mode == 'recon' }}
+        run: |
+          sshpass -e ssh -o StrictHostKeyChecking=no -o ConnectTimeout=15 root@"$HOST" bash -s <<'REMOTE'
+          set +e
+          echo "===== os ====="
+          uname -a
+          grep PRETTY /etc/os-release
+          echo "===== listening ports ====="
+          ss -tlnp | head -40
+          echo "===== web servers ====="
+          for svc in caddy nginx apache2 traefik; do
+            systemctl is-active "$svc" >/dev/null 2>&1 && echo "$svc: active" || echo "$svc: not active"
+          done
+          echo "===== docker ====="
+          docker ps --format '{{.Names}} {{.Image}} {{.Ports}}' 2>/dev/null || echo "no docker"
+          echo "===== caddy config ====="
+          ls -la /etc/caddy 2>/dev/null && cat /etc/caddy/Caddyfile 2>/dev/null
+          echo "===== nginx vhosts ====="
+          ls -la /etc/nginx/sites-enabled /etc/nginx/conf.d 2>/dev/null
+          echo "===== /var/www ====="
+          ls -la /var/www 2>/dev/null
+          echo "===== disk ====="
+          df -h / | tail -1
+          REMOTE
+
+      - name: Checkout
+        if: ${{ inputs.mode == 'deploy' }}
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        if: ${{ inputs.mode == 'deploy' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Build
+        if: ${{ inputs.mode == 'deploy' }}
+        run: |
+          npm ci
+          npm run build
+
+      - name: Upload site
+        if: ${{ inputs.mode == 'deploy' }}
+        run: |
+          tar czf - -C dist . | sshpass -e ssh -o StrictHostKeyChecking=no -o ConnectTimeout=15 root@"$HOST" \
+            "mkdir -p '$WEBROOT.new' && tar xzf - -C '$WEBROOT.new' && rm -rf '$WEBROOT.old' && ([ -d '$WEBROOT' ] && mv '$WEBROOT' '$WEBROOT.old' || true) && mv '$WEBROOT.new' '$WEBROOT'"
+
+      - name: Configure web server
+        if: ${{ inputs.mode == 'deploy' }}
+        run: |
+          sshpass -e ssh -o StrictHostKeyChecking=no -o ConnectTimeout=15 root@"$HOST" env SITE="$SITE" WEBROOT="$WEBROOT" bash -s <<'REMOTE'
+          set -e
+          if systemctl is-active caddy >/dev/null 2>&1; then
+            echo "caddy detected"
+            if ! grep -q "$SITE" /etc/caddy/Caddyfile 2>/dev/null; then
+              printf '\n%s {\n\troot * %s\n\tfile_server\n\ttry_files {path} /index.html\n\tencode gzip\n}\n' "$SITE" "$WEBROOT" >> /etc/caddy/Caddyfile
+              caddy validate --config /etc/caddy/Caddyfile
+              systemctl reload caddy
+              echo "caddy site added and reloaded"
+            else
+              echo "caddy site already configured"
+            fi
+          elif systemctl is-active nginx >/dev/null 2>&1; then
+            echo "nginx detected"
+            cat > /etc/nginx/sites-available/$SITE <<CONF
+          server {
+              listen 80;
+              server_name $SITE;
+              root $WEBROOT;
+              index index.html;
+              location / { try_files \$uri \$uri/ /index.html; }
+          }
+          CONF
+            ln -sf /etc/nginx/sites-available/$SITE /etc/nginx/sites-enabled/$SITE
+            nginx -t && systemctl reload nginx
+            echo "nginx vhost added and reloaded"
+          else
+            echo "NO_WEBSERVER_DETECTED — leaving files in $WEBROOT, no server config changed"
+            ss -tlnp | head -20
+          fi
+          REMOTE
+
+      - name: Verify
+        if: ${{ inputs.mode == 'deploy' }}
+        run: |
+          sleep 3
+          echo "--- http://$SITE ---"
+          curl -sSI --max-time 20 "http://$SITE/" || true
+          echo "--- https://$SITE ---"
+          curl -sSI --max-time 30 "https://$SITE/" || true
