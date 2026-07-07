@@ -49,14 +49,19 @@ jobs:
           done
           echo "===== docker ====="
           docker ps --format '{{.Names}} {{.Image}} {{.Ports}}' 2>/dev/null || echo "no docker"
-          echo "===== caddy config ====="
-          ls -la /etc/caddy 2>/dev/null && cat /etc/caddy/Caddyfile 2>/dev/null
-          echo "===== nginx vhosts ====="
-          ls -la /etc/nginx/sites-enabled /etc/nginx/conf.d 2>/dev/null
-          echo "===== /var/www ====="
-          ls -la /var/www 2>/dev/null
-          echo "===== disk ====="
-          df -h / | tail -1
+          echo "===== swarm nodes ====="
+          docker node ls 2>/dev/null
+          echo "===== networks ====="
+          docker network ls 2>/dev/null
+          echo "===== traefik service spec ====="
+          docker service inspect traefik_traefik --format '{{json .Spec.TaskTemplate.ContainerSpec.Args}}' 2>/dev/null
+          docker service inspect traefik_traefik --format '{{json .Spec.TaskTemplate.Networks}}' 2>/dev/null
+          echo "===== resident_web labels (traefik pattern) ====="
+          docker service inspect resident_web --format '{{json .Spec.Labels}}' 2>/dev/null
+          docker service inspect resident_web --format '{{json .Spec.TaskTemplate.ContainerSpec.Mounts}}' 2>/dev/null
+          docker service inspect resident_web --format '{{json .Spec.TaskTemplate.Networks}}' 2>/dev/null
+          echo "===== existing services ====="
+          docker service ls 2>/dev/null
           REMOTE
 
       - name: Checkout
