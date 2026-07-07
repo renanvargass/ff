@@ -1,0 +1,55 @@
+.roster-section {
+  position: relative;
+  padding: 6rem 0;
+  z-index: 2;
+}
+
+.roster-section--dark {
+  background: linear-gradient(180deg, #05070a 0%, #0a0709 45%, #05070a 100%);
+}
+
+.roster-veil {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 55% 40% at 15% 15%, rgba(255, 79, 94, 0.08), transparent 60%),
+    radial-gradient(ellipse 45% 35% at 85% 85%, rgba(155, 123, 255, 0.08), transparent 60%);
+  z-index: 0;
+}
+
+.roster-section--dark .container {
+  position: relative;
+}
+
+.eyebrow--crimson {
+  color: var(--crimson);
+}
+
+.accent--crimson {
+  color: var(--crimson);
+  text-shadow: 0 0 24px rgba(255, 79, 94, 0.35);
+}
+
+.roster-grid {
+  margin-top: 3.5rem;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.6rem;
+}
+
+@media (max-width: 1080px) {
+  .roster-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 780px) {
+  .roster-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .roster-grid {
+    grid-template-columns: 1fr;
+  }
+}

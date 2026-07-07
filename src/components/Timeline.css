@@ -1,0 +1,137 @@
+.timeline-section {
+  position: relative;
+  padding: 8rem 0 6rem;
+  z-index: 2;
+}
+
+.timeline {
+  position: relative;
+  margin-top: 4rem;
+  padding: 1rem 0;
+}
+
+.timeline-line {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  transform: translateX(-50%);
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    var(--mako-soft) 8%,
+    rgba(155, 123, 255, 0.35) 55%,
+    var(--mako-soft) 92%,
+    transparent 100%
+  );
+}
+
+.timeline-item {
+  position: relative;
+  width: 50%;
+  padding: 0 3.5rem 3.5rem;
+}
+
+.timeline-item.is-left {
+  left: 0;
+  text-align: right;
+}
+
+.timeline-item.is-right {
+  left: 50%;
+  text-align: left;
+}
+
+.timeline-node {
+  position: absolute;
+  top: 0.4rem;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--mako);
+  box-shadow: 0 0 0 4px rgba(63, 232, 168, 0.15), 0 0 16px var(--mako);
+}
+
+.is-left .timeline-node {
+  right: -7px;
+}
+.is-right .timeline-node {
+  left: -7px;
+}
+
+.timeline-card {
+  display: inline-block;
+  text-align: left;
+  background: linear-gradient(160deg, rgba(13, 21, 18, 0.9), rgba(8, 13, 11, 0.9));
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  padding: 1.6rem 1.8rem;
+  max-width: 460px;
+  position: relative;
+  transition: border-color 0.3s ease, transform 0.3s ease;
+}
+
+.timeline-card:hover {
+  border-color: var(--mako-soft);
+  transform: translateY(-3px);
+}
+
+.timeline-era {
+  font-family: var(--font-ui);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  font-size: 0.68rem;
+  color: var(--gold);
+  font-weight: 700;
+}
+
+.timeline-title {
+  font-family: var(--font-head);
+  font-size: 1.35rem;
+  margin: 0.4em 0 0.15em;
+  color: var(--ink);
+}
+
+.timeline-years {
+  font-family: var(--font-ui);
+  font-size: 0.78rem;
+  color: var(--ink-dim);
+  letter-spacing: 0.05em;
+}
+
+.timeline-text {
+  margin-top: 0.8rem;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #cdd3cd;
+}
+
+.timeline-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 1rem;
+}
+
+@media (max-width: 820px) {
+  .timeline-line {
+    left: 14px;
+  }
+  .timeline-item,
+  .timeline-item.is-left,
+  .timeline-item.is-right {
+    width: 100%;
+    left: 0;
+    text-align: left;
+    padding: 0 0 2.5rem 2.8rem;
+  }
+  .is-left .timeline-node,
+  .is-right .timeline-node {
+    left: 7px;
+    right: auto;
+  }
+  .timeline-card {
+    max-width: 100%;
+  }
+}
